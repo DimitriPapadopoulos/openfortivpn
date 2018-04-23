@@ -487,7 +487,21 @@ end:
 
 static int ipv4_set_route(struct rtentry *route)
 {
-#ifdef __APPLE__
+#ifdef HAVE_RT_ENTRY_WITH_RT_DST
+       /* we can copy rtentry struct directly between openfortivpn and kernel */
+	log_debug("ip route add %s\n", ipv4_show_route(route));
+
+	int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (sockfd < 0)
+		return ERR_IPV4_SEE_ERRNO;
+	if (ioctl(sockfd, SIOCADDRT, route) == -1) {
+		close(sockfd);
+		return ERR_IPV4_SEE_ERRNO;
+	}
+	close(sockfd);
+#else
+	/* we have to use the route command as tool for route manipulation */
 	char cmd[SHOW_ROUTE_BUFFER_SIZE];
 
 	strcpy(cmd, "route -n add -net ");
@@ -507,18 +521,6 @@ static int ipv4_set_route(struct rtentry *route)
 	int res = system(cmd);
 	if (res == -1)
 		return ERR_IPV4_SEE_ERRNO;
-#else
-	log_debug("ip route add %s\n", ipv4_show_route(route));
-
-	int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-
-	if (sockfd < 0)
-		return ERR_IPV4_SEE_ERRNO;
-	if (ioctl(sockfd, SIOCADDRT, route) == -1) {
-		close(sockfd);
-		return ERR_IPV4_SEE_ERRNO;
-	}
-	close(sockfd);
 #endif
 
 	return 0;
@@ -526,20 +528,8 @@ static int ipv4_set_route(struct rtentry *route)
 
 static int ipv4_del_route(struct rtentry *route)
 {
-#ifdef __APPLE__
-	char cmd[SHOW_ROUTE_BUFFER_SIZE];
-
-	strcpy(cmd, "route -n delete ");
-	strncat(cmd, inet_ntoa(route_dest(route)), 15);
-	strcat(cmd, " -netmask ");
-	strncat(cmd, inet_ntoa(route_mask(route)), 15);
-
-	log_debug("%s\n", cmd);
-
-	int res = system(cmd);
-	if (res == -1)
-		return ERR_IPV4_SEE_ERRNO;
-#else
+#ifdef HAVE_RT_ENTRY_WITH_RT_DST
+       /* we can copy rtentry struct directly between openfortivpn and kernel */
 	struct rtentry tmp;
 	int sockfd;
 
@@ -560,6 +550,19 @@ static int ipv4_del_route(struct rtentry *route)
 		return ERR_IPV4_SEE_ERRNO;
 	}
 	close(sockfd);
+#else
+	char cmd[SHOW_ROUTE_BUFFER_SIZE];
+
+	strcpy(cmd, "route -n delete ");
+	strncat(cmd, inet_ntoa(route_dest(route)), 15);
+	strcat(cmd, " -netmask ");
+	strncat(cmd, inet_ntoa(route_mask(route)), 15);
+
+	log_debug("%s\n", cmd);
+
+	int res = system(cmd);
+	if (res == -1)
+		return ERR_IPV4_SEE_ERRNO;
 #endif
 	return 0;
 }

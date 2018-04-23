@@ -32,7 +32,13 @@
 #include <net/if_var.h>
 #endif
 
-#ifdef __APPLE__
+#ifndef HAVE_RT_ENTRY_WITH_RT_DST
+/* On MacOSX and FreeBSD struct rtentry is not directly available.
+ * On FreeBSD one could #define _WANT_RTENTRY but the struct does not
+ * contain rt_dst for instance. The entries for mask and destination
+ * are maintained in a separate radix_tree structure by the routing
+ * table instance. We can not simply copy rtentry structures.
+ */
 
 /* This structure gets passed by the SIOCADDRT and SIOCDELRT calls. */
 struct rtentry {

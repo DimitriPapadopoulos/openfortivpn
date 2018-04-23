@@ -45,6 +45,26 @@ AC_CHECK_FUNCS([atoi close connect execv exit _exit fclose fcntl fflush fopen fo
 # check for optional functions
 AC_CHECK_FUNCS([pthread_mutexattr_setrobust X509_check_host])
 
+# specialised checks for particular features
+
+AC_MSG_CHECKING(whether rtentry is available and has rt_dst )
+AC_TRY_RUN([
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <net/route.h>
+static inline struct sockaddr_in *cast_addr(struct sockaddr *addr)
+{
+       return (struct sockaddr_in *) addr;
+}
+struct rtentry route;
+int main() {
+  cast_addr(&(&route)->rt_dst)->sin_family = AF_INET;
+  return (cast_addr(&(&route)->rt_dst)->sin_family == AF_INET) ? 0 : 1; }
+], [
+  AC_DEFINE(HAVE_RT_ENTRY_WITH_RT_DST)
+  AC_MSG_RESULT(yes)
+], AC_MSG_RESULT(no) )
+
 # existence of specific files
 # this does not allow cross platform compiling, but it avoids many #ifdef __OS_TYPE__
 AC_CHECK_FILE(/proc/net/route,[AC_DEFINE(HAVE_PROC_NET_ROUTE)],[])
