@@ -156,7 +156,14 @@ static int ipv4_get_route(struct rtentry *route)
 	char *saveptr3 = NULL;
 
 	// Open the command for reading
+#ifdef HAVE_USR_SBIN_NETSTAT
+	/* this is the path on Mac OSX */
 	fp = popen("/usr/sbin/netstat -f inet -rn", "r");
+#endif
+#ifdef HAVE_USR_BIN_NETSTAT
+	/* this is for BSD, output however is quite similar */
+	fp = popen("/usr/bin/netstat -f inet -rn", "r");
+#endif
 	if (fp == NULL)
 		return ERR_IPV4_SEE_ERRNO;
 
@@ -271,7 +278,7 @@ static int ipv4_get_route(struct rtentry *route)
 	}
 	start++;
 
-#ifdef __APPLE__
+#ifdef HAVE_USR_SBIN_NETSTAT
 	// Skip 3 more lines on Mac OSX
 	start = index(start, '\n');
 	start = index(++start, '\n');

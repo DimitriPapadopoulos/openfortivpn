@@ -48,6 +48,8 @@ AC_CHECK_FUNCS([pthread_mutexattr_setrobust X509_check_host])
 # existence of specific files
 # this does not allow cross platform compiling, but it avoids many #ifdef __OS_TYPE__
 AC_CHECK_FILE(/proc/net/route,[AC_DEFINE(HAVE_PROC_NET_ROUTE)],[])
+AC_CHECK_FILE(/usr/sbin/netstat,[AC_DEFINE(HAVE_USR_SBIN_NETSTAT)],[])
+AC_CHECK_FILE(/usr/bin/netstat,[AC_DEFINE(HAVE_USR_BIN_NETSTAT)],[])
 
 
 AC_OUTPUT(Makefile)
