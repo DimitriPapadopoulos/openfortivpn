@@ -15,7 +15,8 @@ PKG_PROG_PKG_CONFIG
 # Helps support multiarch by setting 'host_os' and 'host_cpu'
 AC_CANONICAL_HOST
 
-AM_SILENT_RULES([yes])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 
 # Checks for libraries.
 PKG_CHECK_MODULES(OPENSSL, [libcrypto libssl])
