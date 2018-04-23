@@ -39,6 +39,7 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
 #if HAVE_PTY_H
@@ -46,11 +47,11 @@
 #elif HAVE_UTIL_H
 #include <util.h>
 #endif
-#if HAVE_LIBUTIL
-#include <libutil.h>
-#endif
 #if HAVE_TERMIOS_H
 #include <termios.h>
+#endif
+#if HAVE_LIBUTIL_H
+#include <libutil.h>
 #endif
 #include <signal.h>
 #include <sys/wait.h>
@@ -112,12 +113,21 @@ static int pppd_run(struct tunnel *tunnel)
 	};
 #endif
 
+#ifdef HAVE_USR_SBIN_PPPD
 	static const char pppd_path[] = "/usr/sbin/pppd";
 
 	if (access(pppd_path, F_OK) != 0) {
 		log_error("%s: %s.\n", pppd_path, strerror(errno));
 		return 1;
 	}
+#elif HAVE_USR_SBIN_PPP
+	static const char ppp_path[] = "/usr/sbin/ppp";
+
+	if (access(ppp_path, F_OK) != 0) {
+		log_error("%s: %s.\n", ppp_path, strerror(errno));
+		return 1;
+	}
+#endif
 
 #ifdef HAVE_STRUCT_TERMIOS
 	pid = forkpty(&amaster, NULL, &termp, NULL);
@@ -129,6 +139,7 @@ static int pppd_run(struct tunnel *tunnel)
 		log_error("forkpty: %s\n", strerror(errno));
 		return 1;
 	} else if (pid == 0) { // child process
+#ifdef HAVE_USR_SBIN_PPPD
 		static const char *args[] = {
 			pppd_path,
 			"38400", // speed
@@ -199,6 +210,19 @@ static int pppd_run(struct tunnel *tunnel)
 		// Assert that we didn't use up all NULL pointers above
 		assert(i < ARRAY_SIZE(args));
 
+#elif HAVE_USR_SBIN_PPP
+		/*
+		 * assume there is a default configuration to start.
+		 * Support for taking options from the command line
+		 * e.g. the name of the configuration or options
+		 * to send interactively to ppp will be added later
+		 */
+		static const char *args[] = {
+			ppp_path,
+			"-background",
+			NULL // terminal null pointer required by execvp()
+		};
+#endif
 		close(tunnel->ssl_socket);
 		execv(args[0], (char *const *)args);
 		/*

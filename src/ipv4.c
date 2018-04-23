@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
+#include <limits.h>
 
 #define SHOW_ROUTE_BUFFER_SIZE 128
 
@@ -313,7 +314,7 @@ static int ipv4_get_route(struct rtentry *route)
 		window = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
 		irtt = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
 #else
-                /* parse netstat output on Mac OSX and BSD */
+		/* parse netstat output on Mac OSX and BSD */
 		char tmp_ip_string[16];
 		struct in_addr dstaddr;
 		int pos;
@@ -488,7 +489,7 @@ end:
 static int ipv4_set_route(struct rtentry *route)
 {
 #ifdef HAVE_RT_ENTRY_WITH_RT_DST
-       /* we can copy rtentry struct directly between openfortivpn and kernel */
+	/* we can copy rtentry struct directly between openfortivpn and kernel */
 	log_debug("ip route add %s\n", ipv4_show_route(route));
 
 	int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -529,7 +530,7 @@ static int ipv4_set_route(struct rtentry *route)
 static int ipv4_del_route(struct rtentry *route)
 {
 #ifdef HAVE_RT_ENTRY_WITH_RT_DST
-       /* we can copy rtentry struct directly between openfortivpn and kernel */
+	/* we can copy rtentry struct directly between openfortivpn and kernel */
 	struct rtentry tmp;
 	int sockfd;
 
