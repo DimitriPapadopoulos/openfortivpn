@@ -296,7 +296,24 @@ static int ipv4_get_route(struct rtentry *route)
 		char *iface;
 		uint32_t dest, mask, gtw;
 		unsigned short flags;
-#ifdef __APPLE__
+#ifdef HAVE_PROC_NET_ROUTE
+		unsigned short irtt;
+		short metric;
+		unsigned long mtu, window;
+
+		iface = strtok_r(line, "\t", &saveptr2);
+		dest = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+		gtw = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+		flags = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+		strtok_r(NULL, "\t", &saveptr2); // "RefCnt"
+		strtok_r(NULL, "\t", &saveptr2); // "Use"
+		metric = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+		mask = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+		mtu = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+		window = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+		irtt = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
+#else
+                /* parse netstat output on Mac OSX and BSD */
 		char tmp_ip_string[16];
 		struct in_addr dstaddr;
 		int pos;
@@ -382,22 +399,6 @@ static int ipv4_get_route(struct rtentry *route)
 		iface = strtok_r(NULL, " ", &saveptr2); // "Netif"
 		log_debug("- Interface: %s\n", iface);
 		log_debug("\n");
-#else
-		unsigned short irtt;
-		short metric;
-		unsigned long mtu, window;
-
-		iface = strtok_r(line, "\t", &saveptr2);
-		dest = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
-		gtw = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
-		flags = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
-		strtok_r(NULL, "\t", &saveptr2); // "RefCnt"
-		strtok_r(NULL, "\t", &saveptr2); // "Use"
-		metric = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
-		mask = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
-		mtu = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
-		window = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
-		irtt = strtol(strtok_r(NULL, "\t", &saveptr2), NULL, 16);
 #endif
 		/*
 		 * Now that we have parsed a routing entry, check if it
@@ -440,7 +441,7 @@ static int ipv4_get_route(struct rtentry *route)
 		if (((dest & mask) == (rtdest & rtmask & mask))
 		    && (mask >= route_mask(route).s_addr)
 		    && (mask <= rtmask)) {
-#ifndef __APPLE__
+#ifdef HAVE_PROC_NET_ROUTE
 			if (((mask == route_mask(route).s_addr)
 			     && (metric <= route->rt_metric))
 			    || (rtfound == 0)
@@ -456,7 +457,7 @@ static int ipv4_get_route(struct rtentry *route)
 				strncpy(route_iface(route), iface,
 				        ROUTE_IFACE_LEN - 1);
 
-#ifndef __APPLE__
+#ifdef HAVE_PROC_NET_ROUTE
 				// we do not have these values from Mac OS X netstat,
 				// so stay with defaults denoted by values of 0
 				route->rt_metric = metric;
@@ -468,7 +469,7 @@ static int ipv4_get_route(struct rtentry *route)
 		}
 		line = strtok_r(NULL, "\n", &saveptr1);
 	}
-#ifdef __APPLE__
+#ifndef HAVE_PROC_NET_ROUTE
 end:
 #endif
 	if (rtfound==0) {
