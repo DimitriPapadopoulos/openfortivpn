@@ -41,6 +41,13 @@ AC_CHECK_TYPES([struct termios], [], [], [#include <termios.h>])
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([atoi close connect execv exit _exit fclose fcntl fflush fopen forkpty fprintf fputs free freeaddrinfo freeifaddrs freopen fwrite getaddrinfo getchar getenv getopt_long htons index inet_addr inet_ntoa isatty malloc memcpy memmem memmove memset ntohs open openlog pclose popen printf pthread_cancel pthread_cond_init pthread_cond_signal pthread_cond_wait pthread_join pthread_mutexattr_init pthread_mutex_destroy pthread_mutex_init pthread_mutex_lock pthread_mutex_unlock pthread_sigmask puts read realloc rewind select setenv sigaddset sigemptyset signal snprintf socket sprintf strcasestr strcat strchr strcmp strcpy strdup strerror strlen strncasecmp strncat strncpy strsignal strstr strtok strtok_r strtol syslog system tcsetattr usleep vprintf vsnprintf vsyslog write], [], AC_MSG_ERROR([Required function not present]))
+
+# check for optional functions
 AC_CHECK_FUNCS([pthread_mutexattr_setrobust X509_check_host])
+
+# existence of specific files
+# this does not allow cross platform compiling, but it avoids many #ifdef __OS_TYPE__
+AC_CHECK_FILE(/proc/net/route,[AC_DEFINE(HAVE_PROC_NET_ROUTE)],[])
+
 
 AC_OUTPUT(Makefile)

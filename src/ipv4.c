@@ -136,7 +136,21 @@ static int ipv4_get_route(struct rtentry *route)
 	route_mask(route).s_addr = inet_addr("0.0.0.0");
 	route_gtw(route).s_addr = inet_addr("0.0.0.0");
 
-#ifdef __APPLE__
+#ifdef HAVE_PROC_NET_ROUTE
+	/* this is not present on Mac OSX */
+	int fd;
+	// Cannot stat, mmap not lseek this special /proc file
+	fd = open("/proc/net/route", O_RDONLY);
+	if (fd == -1)
+		return ERR_IPV4_SEE_ERRNO;
+
+	size = read(fd, buffer, sizeof(buffer) - 1);
+	if (size == -1) {
+		close(fd);
+		return ERR_IPV4_SEE_ERRNO;
+	}
+	close(fd);
+#else
 	FILE *fp;
 	int len = sizeof(buffer) - 1;
 	char *saveptr3 = NULL;
@@ -241,20 +255,6 @@ static int ipv4_get_route(struct rtentry *route)
 #ifdef RTF_PROXY      // Proxying; cloned routes will not be scoped
 	flag_table['Y'] = RTF_PROXY & USHRT_MAX;
 #endif
-
-#else
-	int fd;
-	// Cannot stat, mmap not lseek this special /proc file
-	fd = open("/proc/net/route", O_RDONLY);
-	if (fd == -1)
-		return ERR_IPV4_SEE_ERRNO;
-
-	size = read(fd, buffer, sizeof(buffer) - 1);
-	if (size == -1) {
-		close(fd);
-		return ERR_IPV4_SEE_ERRNO;
-	}
-	close(fd);
 #endif
 
 	if (size == 0) {
