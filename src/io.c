@@ -39,11 +39,11 @@
 #include <string.h>
 #include <errno.h>
 
-#ifdef __APPLE__
-
-/* Mac OS X defines sem_init but actually does not implement them */
+#ifdef HAVE_MACH_MACH_H
+/* this is typical for mach kernel used on Mac OSX */
 #include <mach/mach.h>
 
+/* Mac OS X defines sem_init but actually does not implement them */
 typedef semaphore_t os_semaphore_t;
 
 #define SEM_INIT(sem, x, value)	semaphore_create(mach_task_self(), sem, \
