@@ -29,6 +29,6 @@ install-data-hook:
 dist_man_MANS = doc/openfortivpn.1
 
 doc/openfortivpn.1: $(srcdir)/doc/openfortivpn.1.in
-	sed -e 's|[@]SYSCONFDIR[@]|$(sysconfdir)|g;s|[@]DATADIR[@]|$(datadir)|g;' $^ >$@
+	sed -e 's|[@]SYSCONFDIR[@]|$(sysconfdir)|g;s|[@]DATADIR[@]|$(datadir)|g;' $(srcdir)/doc/openfortivpn.1.in >$@
 
 EXTRA_DIST = LICENSE README.md doc/openfortivpn.1.in $(data_DATA)

@@ -39,12 +39,19 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
-#ifdef __APPLE__
-#include <util.h>
-#else
+#if HAVE_PTY_H
 #include <pty.h>
+#elif HAVE_UTIL_H
+#include <util.h>
+#endif
+#if HAVE_TERMIOS_H
+#include <termios.h>
+#endif
+#if HAVE_LIBUTIL_H
+#include <libutil.h>
 #endif
 #include <signal.h>
 #include <sys/wait.h>
@@ -98,7 +105,7 @@ static int pppd_run(struct tunnel *tunnel)
 {
 	pid_t pid;
 	int amaster;
-#ifndef __APPLE__
+#ifdef HAVE_STRUCT_TERMIOS
 	struct termios termp = {
 		.c_cflag = B9600,
 		.c_cc[VTIME] = 0,
@@ -106,23 +113,33 @@ static int pppd_run(struct tunnel *tunnel)
 	};
 #endif
 
+#ifdef HAVE_USR_SBIN_PPPD
 	static const char pppd_path[] = "/usr/sbin/pppd";
 
 	if (access(pppd_path, F_OK) != 0) {
 		log_error("%s: %s.\n", pppd_path, strerror(errno));
 		return 1;
 	}
+#elif HAVE_USR_SBIN_PPP
+	static const char ppp_path[] = "/usr/sbin/ppp";
 
-#ifdef __APPLE__
-	pid = forkpty(&amaster, NULL, NULL, NULL);
-#else
+	if (access(ppp_path, F_OK) != 0) {
+		log_error("%s: %s.\n", ppp_path, strerror(errno));
+		return 1;
+	}
+#endif
+
+#ifdef HAVE_STRUCT_TERMIOS
 	pid = forkpty(&amaster, NULL, &termp, NULL);
+#else
+	pid = forkpty(&amaster, NULL, NULL, NULL);
 #endif
 
 	if (pid == -1) {
 		log_error("forkpty: %s\n", strerror(errno));
 		return 1;
 	} else if (pid == 0) { // child process
+#ifdef HAVE_USR_SBIN_PPPD
 		static const char *args[] = {
 			pppd_path,
 			"38400", // speed
@@ -193,6 +210,19 @@ static int pppd_run(struct tunnel *tunnel)
 		// Assert that we didn't use up all NULL pointers above
 		assert(i < ARRAY_SIZE(args));
 
+#elif HAVE_USR_SBIN_PPP
+		/*
+		 * assume there is a default configuration to start.
+		 * Support for taking options from the command line
+		 * e.g. the name of the configuration or options
+		 * to send interactively to ppp will be added later
+		 */
+		static const char *args[] = {
+			ppp_path,
+			"-background",
+			NULL // terminal null pointer required by execvp()
+		};
+#endif
 		close(tunnel->ssl_socket);
 		execv(args[0], (char *const *)args);
 		/*

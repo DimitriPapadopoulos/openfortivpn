@@ -15,7 +15,8 @@ PKG_PROG_PKG_CONFIG
 # Helps support multiarch by setting 'host_os' and 'host_cpu'
 AC_CANONICAL_HOST
 
-AM_SILENT_RULES([yes])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 
 # Checks for libraries.
 PKG_CHECK_MODULES(OPENSSL, [libcrypto libssl])
@@ -23,7 +24,7 @@ AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_ERROR([Cannot find libpthr
 AC_CHECK_LIB([util], [forkpty], [], [AC_MSG_ERROR([Cannot find libutil.])])
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h assert.h ctype.h errno.h fcntl.h getopt.h ifaddrs.h limits.h mach/mach.h netdb.h net/if.h netinet/in.h netinet/tcp.h net/route.h pty.h semaphore.h signal.h stdarg.h stddef.h stdint.h stdio.h stdlib.h string.h strings.h sys/ioctl.h syslog.h sys/socket.h sys/stat.h sys/time.h sys/types.h sys/wait.h termios.h unistd.h util.h])
+AC_CHECK_HEADERS([arpa/inet.h assert.h ctype.h errno.h fcntl.h getopt.h ifaddrs.h libutil.h limits.h mach/mach.h netdb.h net/if.h net/if_var.h netinet/in.h netinet/tcp.h net/route.h pty.h semaphore.h signal.h stdarg.h stddef.h stdint.h stdio.h stdlib.h string.h strings.h sys/ioctl.h sys/mutex.h syslog.h sys/socket.h sys/stat.h sys/time.h sys/types.h sys/wait.h termios.h unistd.h util.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
@@ -34,11 +35,44 @@ AC_TYPE_SSIZE_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
+AC_CHECK_TYPES([struct termios], [], [], [#include <termios.h>])
 
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([atoi close connect execv exit _exit fclose fcntl fflush fopen forkpty fprintf fputs free freeaddrinfo freeifaddrs freopen fwrite getaddrinfo getchar getenv getopt_long htons index inet_addr inet_ntoa isatty malloc memcpy memmem memmove memset ntohs open openlog pclose popen printf pthread_cancel pthread_cond_init pthread_cond_signal pthread_cond_wait pthread_join pthread_mutexattr_init pthread_mutex_destroy pthread_mutex_init pthread_mutex_lock pthread_mutex_unlock pthread_sigmask puts read realloc rewind select setenv sigaddset sigemptyset signal snprintf socket sprintf strcasestr strcat strchr strcmp strcpy strdup strerror strlen strncasecmp strncat strncpy strsignal strstr strtok strtok_r strtol syslog system tcsetattr usleep vprintf vsnprintf vsyslog write], [], AC_MSG_ERROR([Required function not present]))
+
+# check for optional functions
 AC_CHECK_FUNCS([pthread_mutexattr_setrobust X509_check_host])
+
+# specialised checks for particular features
+
+AC_MSG_CHECKING(whether rtentry is available and has rt_dst )
+AC_TRY_RUN([
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <net/route.h>
+static inline struct sockaddr_in *cast_addr(struct sockaddr *addr)
+{
+       return (struct sockaddr_in *) addr;
+}
+struct rtentry route;
+int main() {
+  cast_addr(&(&route)->rt_dst)->sin_family = AF_INET;
+  return (cast_addr(&(&route)->rt_dst)->sin_family == AF_INET) ? 0 : 1; }
+], [
+  AC_DEFINE(HAVE_RT_ENTRY_WITH_RT_DST)
+  AC_MSG_RESULT(yes)
+], AC_MSG_RESULT(no) )
+
+# existence of specific files
+# this does not allow cross platform compiling, but it avoids many #ifdef __OS_TYPE__
+AC_CHECK_FILE(/proc/net/route,[AC_DEFINE(HAVE_PROC_NET_ROUTE)],[])
+AC_CHECK_FILE(/usr/sbin/netstat,[AC_DEFINE(HAVE_USR_SBIN_NETSTAT)],[])
+AC_CHECK_FILE(/usr/bin/netstat,[AC_DEFINE(HAVE_USR_BIN_NETSTAT)],[])
+# not yet used, but FreeBSD does not use pppd anymore but user space ppp application
+AC_CHECK_FILE(/usr/sbin/pppd,[AC_DEFINE(HAVE_USR_SBIN_PPPD)],[])
+AC_CHECK_FILE(/usr/sbin/ppp,[AC_DEFINE(HAVE_USR_SBIN_PPP)],[])
+
 
 AC_OUTPUT(Makefile)
