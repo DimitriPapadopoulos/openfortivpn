@@ -1,5 +1,7 @@
 #!/bin/bash
 # Copyright (C) 2015 Adrien Vergé
+#
+# shellcheck disable=SC2046
 
 rc=0
 

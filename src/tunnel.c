@@ -1172,7 +1172,7 @@ int ssl_connect(struct tunnel *tunnel)
 			return 1;
 		}
 
-	} else {        /* end PKCS11-engine */
+	} else { /* end PKCS11-engine */
 #endif
 
 		if (tunnel->config->user_cert) {
@@ -1203,7 +1203,7 @@ int ssl_connect(struct tunnel *tunnel)
 		}
 #ifdef OPENSSL_ENGINE
 	}
-#endif /* PKCS11-engine */
+#endif
 
 	tunnel->ssl_handle = SSL_new(tunnel->ssl_context);
 	if (tunnel->ssl_handle == NULL) {

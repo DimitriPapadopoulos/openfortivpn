@@ -1,6 +1,8 @@
-# Security Policy
+Security Policy
+===============
 
-## Supported Versions
+Supported Versions
+------------------
 
 Use this section to tell people about which versions of your project are
 currently being supported with security updates.
@@ -9,6 +11,7 @@ currently being supported with security updates.
 | ----------------------- | ------------------ |
 | latest stable release   | :white_check_mark: |
 
-## Reporting a Vulnerability
+Reporting a Vulnerability
+-------------------------
 
 Send an email to security@openfortivpn.org.
