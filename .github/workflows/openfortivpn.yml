@@ -1,0 +1,75 @@
+---
+name: Legacy
+
+on:
+  push:
+    branches-ignore: [master]
+    # Remove the line above to run when pushing to master
+  pull_request:
+    branches: [master]
+
+jobs:
+  astyle:
+    name: Artistic Style
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Install astyle
+        run: ./tests/ci/install_astyle.sh $HOME/.openfortivpn-deps
+
+      - name: Artistic Style
+        run: ./tests/lint/astyle.sh $(git ls-files '*.[ch]' | grep -v openssl_hostname_validation)
+
+  checkpatch:
+    name: Linux Kernel checkpatch.pl
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Linux Kernel checkpatch.pl
+        run: ./tests/lint/checkpatch.sh $(git ls-files '*.[ch]' | grep -v openssl_hostname_validation)
+
+  eol-at-eof:
+    name: EOL at EOF
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: EOL at EOF
+        run: ./tests/lint/eol-at-eof.sh $(git ls-files | grep -v openssl_hostname_validation)
+
+  line_length:
+    name: Line Length
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Line Length
+        run: ./tests/lint/line_length.py $(git ls-files '*.[ch]' | grep -v openssl_hostname_validation)
+
+  build:
+    name: Build openfortivpn
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Install OpenSSL
+        run: ./tests/ci/install_openssl.sh $HOME/.openfortivpn-deps
+
+      - name: Build openfortivpn
+        run: |-
+          ./autogen.sh
+          export PKG_CONFIG_PATH="$HOME/.openfortivpn-deps/lib/pkgconfig"
+          ./configure --prefix=/usr --sysconfdir=/etc
+          make
